@@ -16,8 +16,8 @@ def request_covid_loc(page):  # Request locations from webpage
 
     req = requests.get(page)
     soup = bs(req.content, 'lxml')
-    table = soup.find('div', attrs={'id': 'locations'})
-    table_body = table.find_all('div', attrs={'id': 'mobileLocationList'})
+    table_body = soup.findChildren('table')[1].findChildren(
+        ['tr', 'location-block'])  # Factored code to single line
 
     return table_body
 
@@ -27,10 +27,12 @@ def parse_covid_loc(table_body):  # Parse locations into text
     data = []
 
     for row in table_body:
-        cols = row.find_all('p')
-        cols = [ele.text.strip() for ele in cols]
-        cols = [ele.replace('\n', ' ') for ele in cols]
-        cols = [ele.replace(u'\xa0', ' ') for ele in cols]
+        cols = row.findChildren(
+            attrs={'content1', 'content2', 'content3', 'content4', 'content5'})  # Find elements with html tag attrs
+        cols = [ele.text.strip().replace('\n', ' ').replace(u'\xa0', ' ')
+                for ele in cols]  # Factored element edits to single line
+        # cols = [ele.replace('\n', ' ') for ele in cols]
+        # cols = [ele.replace(u'\xa0', ' ') for ele in cols]
 
         data.append([ele for ele in cols if ele])
 
@@ -74,13 +76,14 @@ def create_connection(db_file):
 def filter_db_expo(dbconn, data):  # Compare database and new list
 
     new_alerts = []
-    alerts_not_added = []
+    alerts_not_added = []  # If there is a need for manual input
 
     for i in data:
-        if len(i) < 5:
+        if not i:
+            print('Row does not contain data')
+        elif len(i) < 5:
             alerts_not_added.append(i)
-            print("lenght of list is wrong")
-            print(i)
+            print(f"Lenght of list is wrong. \n {i}")
         else:
             if len(i) > 5:
                 timedate = '\n'.join(i[:-4])
@@ -107,7 +110,7 @@ def filter_db_expo(dbconn, data):  # Compare database and new list
             else:
                 new_alerts.append(args)
 
-    return new_alerts, alerts_not_added
+    return new_alerts
 
 
 def add_site(dbconn, new_list):  # Add new sites to data base
@@ -124,6 +127,10 @@ def add_site(dbconn, new_list):  # Add new sites to data base
                     VALUES (?,?,?,?,?) """
 
         dbconn.execute(query, args)
+        print(
+            f"New site added: {timedate}, {suburb}, {location}, {updated}, {advice}")
+
+    print(f"{len(new_list)} sites added to database")
 
 
 def print_sites(dbconn):  # Print all exposure sites
@@ -140,7 +147,7 @@ def check_sites(dbconn):  # Function to check and add exposure sites to db
     parsed_data = parse_covid_loc(sites_html)
 
     # Check and insert exposure sites to database
-    new_sites, not_added = filter_db_expo(dbconn, parsed_data)
+    new_sites = filter_db_expo(dbconn, parsed_data)
     add_site(dbconn, new_sites)
 
 

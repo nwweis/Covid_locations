@@ -8,7 +8,13 @@ Main Function
 5. Add new sites to database
 
 TODO:
-Fix sites that are of different lenghts, currently not added to database.
+(FIXED) Fix sites that are of different lenghts, currently not added to database.
+
+Edits:
+(31/01) 
+Changed table extraction method
+Factored some lines of code
+
 
 Reference:
 https://github.com/kronicd/WA_Covid_Mailer
